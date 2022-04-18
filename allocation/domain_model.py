@@ -26,6 +26,28 @@ class Batch:
     def __hash__(self):
         return hash(self.reference)
 
+    def allocate(self, order_line: OrderLine):
+        if self.can_allocate(order_line=order_line):
+            self._allocated.add(order_line)
+
+    def deallocate(self, order_line: OrderLine):
+        if order_line in self._allocated:
+            self._allocated.remove(order_line)
+
+    def can_allocate(self, order_line: OrderLine):
+        return (
+            order_line.sku == self.sku
+            and order_line.quantity <= self.available_quantity
+        )
+
+    @property
+    def available_quantity(self):
+        return self.purchased_quantity - self.allocated_quantity
+
+    @property
+    def allocated_quantity(self):
+        return sum([o.quantity for o in self._allocated])
+
 
 class Product:
     def __init__(self, sku: str, batches: List[Batch]):
@@ -33,7 +55,7 @@ class Product:
         self.batches = batches
 
     def allocate(self, order_line: OrderLine) -> Batch:
-        pass
+        raise NotImplementedError()
 
     def __repr__(self):
         return f"<Product {self.sku}>"
@@ -45,3 +67,11 @@ class Product:
 
     def __hash__(self):
         return hash(self.sku)
+
+
+class OutOfStockException(Exception):
+    pass
+
+
+class InvalidSkuException(Exception):
+    pass
