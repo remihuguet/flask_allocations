@@ -1,4 +1,23 @@
 def test_products(client):
+    response = client.post(
+        "/products/add_batch",
+        json={
+            "reference": "batch1333",
+            "sku": "Product 1",
+            "quantity": 10,
+            "eta": None,
+        },
+    )
+    response = client.post(
+        "/products/add_batch",
+        json={
+            "reference": "batch222",
+            "sku": "Product 2",
+            "quantity": 10,
+            "eta": None,
+        },
+    )
+
     response = client.get("/products")
     assert response.status_code == 200
     assert "products" in response.json
@@ -23,5 +42,10 @@ def test_add_batch_endpoint_returns_400_if_missing_parameter(client):
     response = client.post(
         "/products/add_batch",
         json={"reference": "batch1", "sku": "somesku", "eta": None},
+    )
+    assert response.status_code == 400
+    response = client.post(
+        "/products/add_batch",
+        json={"reference": "batch1", "quantity": "str", "sku": "somesku", "eta": None},
     )
     assert response.status_code == 400

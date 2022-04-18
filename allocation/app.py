@@ -1,17 +1,11 @@
 from flask import Flask, jsonify, request
-from allocation.domain_model import Product
 
 from allocation.repository import Repository
 from . import services
 
 app = Flask(__name__)
 
-repository = Repository(
-    products=[
-        Product(sku="Product 1", batches=[]),
-        Product(sku="Product 2", batches=[]),
-    ]
-)
+repository = Repository(products=[])
 
 
 @app.route("/", methods=["GET"])
@@ -53,9 +47,9 @@ def add_batch():
     try:
         reference = request.json["reference"]
         sku = request.json["sku"]
-        quantity = request.json["quantity"]
+        quantity = int(request.json["quantity"])
         eta = request.json["eta"] if "eta" in request.json else None
-    except KeyError:
+    except (KeyError, ValueError):
         return jsonify({"error": "Missing required field"}), 400
 
     services.add_batch(reference, sku, quantity, eta, repository)
