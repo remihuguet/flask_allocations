@@ -1,0 +1,21 @@
+{% extends "base.html" %} {% block body %}
+
+<h1>Products list</h1>
+
+<ul>
+  {% for product in products %}
+  <li>
+    {{product.sku}} - Total available quantity: {{product.available_quantity}}
+  </li>
+  <ul>
+    {% for batch in product.batches %}
+    <li>
+      {{batch.reference}}: Purchased: {{batch.purchased_quantity}} - Allocated:
+      {{batch.allocated_quantity}} - Available: {{batch.available_quantity}}
+    </li>
+    {% endfor %}
+  </ul>
+  {% endfor %}
+</ul>
+
+{% endblock %}

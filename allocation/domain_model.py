@@ -80,6 +80,10 @@ class Product:
     def __hash__(self):
         return hash(self.sku)
 
+    @property
+    def available_quantity(self):
+        return sum([b.available_quantity for b in self.batches])
+
 
 class OutOfStockException(Exception):
     pass

@@ -24,3 +24,6 @@ class Repository:
     def save(self, product: Product):
         self._products.discard(product)
         self._products.add(product)
+
+
+repository = Repository(products=[])
