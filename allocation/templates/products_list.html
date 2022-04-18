@@ -5,8 +5,9 @@
 <ul>
   {% for product in products %}
   <li>
-    {{product.sku}} - Total available quantity: {{product.available_quantity}}
+    {{product.sku}} - Total available quantity: {{product.available_quantity}} -
   </li>
+  {# Ceci est la liste des produits #} {% if product.batches|length > 1 %}
   <ul>
     {% for batch in product.batches %}
     <li>
@@ -15,7 +16,7 @@
     </li>
     {% endfor %}
   </ul>
-  {% endfor %}
+  {% else %} {{product.batches.0.reference }} {% endif %} {% endfor %}
 </ul>
 
 {% endblock %}
