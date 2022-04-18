@@ -1,4 +1,4 @@
-from flask import Flask
+from flask import Flask, jsonify, request
 from allocation.domain_model import Product
 
 from allocation.repository import Repository
@@ -21,9 +21,42 @@ def hello_world():
 
 @app.route("/products", methods=["GET"])
 def list_products():
-    return {
-        "products": [
-            {"sku": p.sku, "batches": p.batches}
-            for p in services.list_products(repository)
-        ]
-    }
+    products = services.list_products(repository)
+
+    products_as_dict = [
+        {
+            "sku": product.sku,
+            "batches": [
+                {
+                    "reference": batch.reference,
+                    "purchased_quantity": batch.purchased_quantity,
+                    "available_quantity": batch.available_quantity,
+                    "eta": batch.eta,
+                    "allocated": [
+                        {
+                            "orderid": alloc.orderid,
+                            "quantity": alloc.quantity,
+                        }
+                        for alloc in batch._allocated
+                    ],
+                }
+                for batch in product.batches
+            ],
+        }
+        for product in products
+    ]
+    return jsonify({"products": products_as_dict})
+
+
+@app.route("/products/add_batch", methods=["POST"])
+def add_batch():
+    try:
+        reference = request.json["reference"]
+        sku = request.json["sku"]
+        quantity = request.json["quantity"]
+        eta = request.json["eta"] if "eta" in request.json else None
+    except KeyError:
+        return jsonify({"error": "Missing required field"}), 400
+
+    services.add_batch(reference, sku, quantity, eta, repository)
+    return jsonify({"status": "OK"}), 201

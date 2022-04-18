@@ -1,12 +1,6 @@
 import pytest
 from datetime import date, timedelta
 from allocation import domain_model, services
-from allocation.repository import Repository
-
-
-@pytest.fixture
-def repository():
-    return Repository(products=[])
 
 
 def test_returns_allocation(repository):
