@@ -26,6 +26,13 @@ class Batch:
     def __hash__(self):
         return hash(self.reference)
 
+    def __gt__(self, other):
+        if not self.eta:
+            return False
+        if not other.eta:
+            return True
+        return self.eta > other.eta
+
     def allocate(self, order_line: OrderLine):
         if self.can_allocate(order_line=order_line):
             self._allocated.add(order_line)
@@ -55,7 +62,12 @@ class Product:
         self.batches = batches
 
     def allocate(self, order_line: OrderLine) -> Batch:
-        raise NotImplementedError()
+        try:
+            batch = next(b for b in sorted(self.batches) if b.can_allocate(order_line))
+            batch.allocate(order_line)
+            return batch
+        except StopIteration:
+            raise OutOfStockException()
 
     def __repr__(self):
         return f"<Product {self.sku}>"

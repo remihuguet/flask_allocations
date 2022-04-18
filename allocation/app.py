@@ -1,4 +1,5 @@
 from flask import Flask, jsonify, request
+from allocation.domain_model import InvalidSkuException
 
 from allocation.repository import Repository
 from . import services
@@ -54,3 +55,19 @@ def add_batch():
 
     services.add_batch(reference, sku, quantity, eta, repository)
     return jsonify({"status": "OK"}), 201
+
+
+@app.route("/products/allocate", methods=["POST"])
+def allocate():
+    try:
+        order_id = request.json["orderid"]
+        sku = request.json["sku"]
+        quantity = int(request.json["quantity"])
+    except (KeyError, ValueError):
+        return jsonify({"error": "Missing required field"}), 400
+
+    try:
+        batchref = services.allocate(order_id, sku, quantity, repository)
+    except InvalidSkuException:
+        return jsonify({"error": "Invalid sku"}), 404
+    return jsonify({"batchref": batchref}), 201
