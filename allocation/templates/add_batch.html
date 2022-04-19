@@ -1,0 +1,22 @@
+{%extends "base.html" %} {% block body %}
+
+<h1>Add a batch</h1>
+
+<form method="POST">
+  <p>
+    <label for="reference">Reference</label>
+    <input type="text" name="reference" id="reference" />
+  </p>
+  <p>
+    <label for="sku">SKU</label>
+    <input type="text" name="sku" id="sku" />
+  </p>
+
+  <p>
+    <label for="quantity">Quantity</label>
+    <input type="number" name="quantity" id="quantity" />
+  </p>
+  <button type="submit">Add</button>
+</form>
+
+{% endblock %}
