@@ -24,4 +24,28 @@ def add_batch_form():
     services.add_batch(
         reference=reference, sku=sku, quantity=qty, repository=repository, eta=None
     )
-    return redirect(url_for("admin.list_products"))
+    return render_template(
+        "products_list.html",
+        products=services.list_products(repository),
+        message=f"Batch reference {reference} for {qty} of product {sku} created.",
+    )
+
+
+@admin.route("/products/allocate", methods=["GET", "POST"])
+def allocate():
+    if request.method == "GET":
+        return render_template(
+            "allocate.html", products=services.list_products(repository=repository)
+        )
+
+    orderid = request.form["orderid"]
+    quantity = int(request.form["quantity"])
+    sku = request.form["sku"]
+    batchref = services.allocate(
+        orderid=orderid, sku=sku, quantity=quantity, repository=repository
+    )
+    return render_template(
+        "products_list.html",
+        products=services.list_products(repository),
+        message=f"Order id {orderid} for {quantity} of product {sku} allocated to batch {batchref}.",
+    )

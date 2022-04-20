@@ -9,7 +9,11 @@
   <body>
     <a href="/admin/products">Products</a>
     <a href="/admin/products/add_batch">Add a batch</a>
-
+    <a href="/admin/products/allocate">Allocate</a>
+    
+    {% if message %}
+      <p>{{message}}</p>
+    {% endif %}
     {% block body %} {% endblock %}
   </body>
 </html>

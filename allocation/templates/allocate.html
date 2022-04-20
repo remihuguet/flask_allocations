@@ -1,0 +1,26 @@
+{%extends "base.html" %} {% block body %}
+
+<h1>Allocate a product</h1>
+
+<form method="POST">
+  <p>
+    <label for="orderid">Order id</label>
+    <input type="text" name="orderid" id="orderid" />
+  </p>
+  <p>
+    <label for="sku">SKU</label>
+    <select name="sku" id="sku">
+      {% for product in products %}
+        <option value="{{product.sku}}">{{product.sku}}</option>
+      {% endfor %}
+    </select>
+  </p>
+
+  <p>
+    <label for="quantity">Quantity</label>
+    <input type="number" name="quantity" id="quantity" />
+  </p>
+  <button type="submit">Add</button>
+</form>
+
+{% endblock %}
