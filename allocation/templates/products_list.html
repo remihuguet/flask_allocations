@@ -1,22 +1,23 @@
 {% extends "base.html" %} {% block body %}
-
-<h1>Products list</h1>
+{{super()}}
+<h2>Products list</h2>
 
 <ul>
   {% for product in products %}
-  <li>
-    {{product.sku}} - Total available quantity: {{product.available_quantity}} -
-  </li>
-  {# Ceci est la liste des produits #} {% if product.batches|length > 1 %}
-  <ul>
-    {% for batch in product.batches %}
-    <li>
-      {{batch.reference}}: Purchased: {{batch.purchased_quantity}} - Allocated:
-      {{batch.allocated_quantity}} - Available: {{batch.available_quantity}}
+    <li style="background-color:{{ loop.cycle('aquamarine', 'white') }}">
+      {{loop.index}} - {{product.sku|upper}} - Total available quantity: {{product.available_quantity}} -
+    
+    {# Ceci est la liste des lots #} {% if product.batches|length > 1 %}
+      <ul>
+        {% for batch in product.batches %}
+          <li>
+          {{batch.reference}}: Purchased: {{batch.purchased_quantity}} - Allocated:
+          {{batch.allocated_quantity}} - Available: {{batch.available_quantity}}
+        </li>
+        {% endfor %}
+      </ul>
     </li>
-    {% endfor %}
-  </ul>
-  {% else %} {{product.batches.0.reference }} {% endif %} {% endfor %}
+    {% else %} {{product.batches.0.reference }} </li>{% endif %} {% endfor %}
 </ul>
 
 {% endblock %}

@@ -1,0 +1,17 @@
+{% macro input(name, label, value='', type="text") %}
+<p>
+    <label for="{{name}}">{{label}}</label>
+    <input type="{{type}}" name="{{name}}" id="{{name}}" value="{{value|e}}" />
+</p>
+{% endmacro %}
+
+{% macro select(name, label, items, att) %}
+<p>
+    <label for="{{name}}">{{label}}</label>
+    <select name="{{name}}" id="{{name}}">
+      {% for item in items %}
+        <option value="{{item|attr(att)}}">{{item|attr(att)}}</option>
+      {% endfor %}
+    </select>
+  </p>
+{% endmacro %}
