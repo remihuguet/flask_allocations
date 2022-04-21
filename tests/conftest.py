@@ -1,13 +1,14 @@
 import pytest
-from allocation import app
-from allocation.repository import Repository
+from allocation import create_app
+from allocation.repository import InMemoryRepository
 
 
 @pytest.fixture
 def repository():
-    return Repository(products=[])
+    return InMemoryRepository(products=[])
 
 
 @pytest.fixture
 def client():
+    app = create_app("InMemoryRepository")
     return app.test_client()

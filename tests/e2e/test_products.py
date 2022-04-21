@@ -53,8 +53,8 @@ def test_products(client_with_products):
     response = client_with_products.get("/products")
     assert response.status_code == 200
     assert "products" in response.json
-    assert 3 == len(response.json["products"])
-    assert set(["Product 1", "Product 2", "somesku"]) == set(
+    assert 2 == len(response.json["products"])
+    assert set(["Product 1", "Product 2"]) == set(
         d["sku"] for d in response.json["products"]
     )
 

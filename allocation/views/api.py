@@ -1,15 +1,14 @@
-from flask import jsonify, request, Blueprint
+from flask import jsonify, request, Blueprint, current_app
 from allocation.domain_model import InvalidSkuException
 
 from allocation import services
-from allocation.repository import repository
 
 api = Blueprint("api", __name__)
 
 
 @api.route("/products", methods=["GET"])
 def list_products():
-    products = services.list_products(repository)
+    products = services.list_products(current_app.repository)
 
     products_as_dict = [
         {
@@ -46,7 +45,7 @@ def add_batch():
     except (KeyError, ValueError):
         return jsonify({"error": "Missing required field"}), 400
 
-    services.add_batch(reference, sku, quantity, eta, repository)
+    services.add_batch(reference, sku, quantity, eta, current_app.repository)
     return jsonify({"status": "OK"}), 201
 
 
@@ -60,7 +59,7 @@ def allocate():
         return jsonify({"error": "Missing required field"}), 400
 
     try:
-        batchref = services.allocate(order_id, sku, quantity, repository)
+        batchref = services.allocate(order_id, sku, quantity, current_app.repository)
     except InvalidSkuException:
         return jsonify({"error": "Invalid sku"}), 404
     return jsonify({"batchref": batchref}), 201

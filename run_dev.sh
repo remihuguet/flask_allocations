@@ -1,1 +1,1 @@
-FLASK_ENV=development FLASK_APP=allocation:app flask run --reload
+FLASK_ENV=development FLASK_APP="allocation:create_app('InMemoryRepository')" flask run --reload
