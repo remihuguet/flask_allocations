@@ -84,6 +84,11 @@ class SQLiteRepository:
             raise ProductNotFoundException()
         return Product(sku=sku, batches=list(batches))
 
+    def _delete(self):
+        self._cursor.execute("DELETE FROM allocations")
+        self._cursor.execute("DELETE FROM batches")
+        self._commit()
+
     @staticmethod
     def _to_batches(results) -> list[Batch]:
         batches = set()
