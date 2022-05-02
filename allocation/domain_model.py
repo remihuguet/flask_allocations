@@ -84,6 +84,10 @@ class Product:
     def available_quantity(self):
         return sum([b.available_quantity for b in self.batches])
 
+    @property
+    def purchased_quantity(self):
+        return sum([b.purchased_quantity for b in self.batches])
+
 
 class OutOfStockException(Exception):
     pass

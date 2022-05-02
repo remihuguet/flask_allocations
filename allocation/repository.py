@@ -70,32 +70,58 @@ class SQLiteRepository:
 
         self._commit()
 
+    def add(self, product: Product):
+        self.save(product)
+
     def get(self, sku: str) -> Product:
         self._cursor.execute(
-            f"""SELECT * FROM batches  INNER JOIN allocations ON batches.reference = allocations.reference
+            f"""SELECT * FROM batches LEFT JOIN allocations ON batches.reference = allocations.reference
             WHERE batches.sku='{sku}'"""
         )
+
+        batches = SQLiteRepository._to_batches(self._cursor.fetchall())
+        if not batches:
+            raise ProductNotFoundException()
+        return Product(sku=sku, batches=list(batches))
+
+    @staticmethod
+    def _to_batches(results) -> list[Batch]:
         batches = set()
-        for res in self._cursor.fetchall():
+        for res in results:
             try:
                 batch = next(b for b in batches if b.reference == res[0])
             except StopIteration:
                 batch = Batch(
                     reference=res[0],
                     quantity=res[2],
-                    sku=sku,
+                    sku=res[1],
                     eta=res[3],
                 )
                 batches.add(batch)
-
-            batch._allocated.add(OrderLine(orderid=res[4], sku=sku, quantity=res[6]))
-
-        if not batches:
-            raise ProductNotFoundException()
-        return Product(sku=sku, batches=list(batches))
+            if res[4]:
+                batch._allocated.add(
+                    OrderLine(orderid=res[4], sku=res[1], quantity=res[6])
+                )
+        return batches
 
     def _commit(self):
         self._conn.commit()
+
+    def list(self) -> list[Product]:
+        self._cursor.execute(
+            """SELECT * FROM batches LEFT JOIN allocations ON batches.reference = allocations.reference"""
+        )
+        batches = SQLiteRepository._to_batches(self._cursor.fetchall())
+        products = list()
+
+        for batch in batches:
+            try:
+                product = next(p for p in products if p.sku == batch.sku)
+            except StopIteration:
+                product = Product(sku=batch.sku, batches=[])
+                products.append(product)
+            product.batches.append(batch)
+        return products
 
 
 class InMemoryRepository:
