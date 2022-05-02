@@ -1,6 +1,6 @@
 import sqlite3
 from typing import Protocol
-from allocation.domain_model import Product
+from allocation.domain_model import Batch, OrderLine, Product
 
 
 class ProductNotFoundException(Exception):
@@ -33,12 +33,13 @@ class SQLiteRepository:
             self._cursor.execute("SELECT sku FROM batches")
         except sqlite3.OperationalError:
             self._cursor.execute(
-                """CREATE TABLE batches 
+                """CREATE TABLE batches
             (reference TEXT PRIMARY KEY, sku TEXT NOT NULL, purchased_quantity INTEGER DEFAULT 0, eta TEXT)"""
             )
             self._cursor.execute(
-                """CREATE TABLE allocations 
-            (orderid TEXT PRIMARY KEY, reference TEXT NOT NULL, quantity INTEGER DEFAULT 0, FOREIGN KEY(reference) REFERENCES batches(reference))"""
+                """CREATE TABLE allocations
+            (orderid TEXT PRIMARY KEY, reference TEXT NOT NULL,
+            quantity INTEGER DEFAULT 0, FOREIGN KEY(reference) REFERENCES batches(reference))"""
             )
 
             self._commit()
@@ -50,19 +51,48 @@ class SQLiteRepository:
             )
             if not self._cursor.fetchone():
                 self._cursor.execute(
-                    f"INSERT INTO batches VALUES ('{batch.reference}', '{batch.sku}', '{batch.purchased_quantity}', '{batch.eta if batch.eta else ''}') "
+                    f"""INSERT INTO batches
+                    VALUES
+                    ('{batch.reference}', '{batch.sku}', '{batch.purchased_quantity}',
+                    '{batch.eta if batch.eta else ''}')"""
                 )
             for allocated in batch._allocated:
                 try:
                     self._cursor.execute(
-                        f"INSERT INTO allocations VALUES ('{allocated.orderid}', '{batch.reference}', '{allocated.quantity}')"
+                        f"""INSERT INTO allocations
+                        VALUES ('{allocated.orderid}', '{batch.reference}', '{allocated.quantity}')"""
                     )
                 except sqlite3.IntegrityError:
                     self._cursor.execute(
-                        f"UPDATE allocations SET reference='{batch.reference}', quantity='{allocated.quantity}' WHERE orderid='{allocated.orderid}'"
+                        f"""UPDATE allocations SET reference='{batch.reference}', quantity='{allocated.quantity}'
+                         WHERE orderid='{allocated.orderid}'"""
                     )
 
         self._commit()
+
+    def get(self, sku: str) -> Product:
+        self._cursor.execute(
+            f"""SELECT * FROM batches  INNER JOIN allocations ON batches.reference = allocations.reference
+            WHERE batches.sku='{sku}'"""
+        )
+        batches = set()
+        for res in self._cursor.fetchall():
+            try:
+                batch = next(b for b in batches if b.reference == res[0])
+            except StopIteration:
+                batch = Batch(
+                    reference=res[0],
+                    quantity=res[2],
+                    sku=sku,
+                    eta=res[3],
+                )
+                batches.add(batch)
+
+            batch._allocated.add(OrderLine(orderid=res[4], sku=sku, quantity=res[6]))
+
+        if not batches:
+            raise ProductNotFoundException()
+        return Product(sku=sku, batches=list(batches))
 
     def _commit(self):
         self._conn.commit()
