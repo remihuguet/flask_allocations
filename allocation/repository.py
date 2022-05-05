@@ -67,7 +67,6 @@ class SQLiteRepository:
                         f"""UPDATE allocations SET reference='{batch.reference}', quantity='{allocated.quantity}'
                          WHERE orderid='{allocated.orderid}'"""
                     )
-
         self._commit()
 
     def add(self, product: Product):
@@ -83,11 +82,6 @@ class SQLiteRepository:
         if not batches:
             raise ProductNotFoundException()
         return Product(sku=sku, batches=list(batches))
-
-    def _delete(self):
-        self._cursor.execute("DELETE FROM allocations")
-        self._cursor.execute("DELETE FROM batches")
-        self._commit()
 
     @staticmethod
     def _to_batches(results) -> list[Batch]:

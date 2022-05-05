@@ -7,10 +7,15 @@ from allocation.repository import ProductNotFoundException, SQLiteRepository
 @pytest.fixture
 def sqlite_repo():
     repo = SQLiteRepository("tests.db")
+    repo._cursor.execute("DELETE FROM allocations")
+    repo._cursor.execute("DELETE FROM batches")
+    repo._commit()
     try:
         yield repo
     finally:
-        repo._delete()
+        repo._cursor.execute("DELETE FROM allocations")
+        repo._cursor.execute("DELETE FROM batches")
+        repo._commit()
         repo._conn.close()
 
 
@@ -36,12 +41,12 @@ def test_save_product(sqlite_repo):
     cursor.execute("SELECT * FROM allocations WHERE reference='batch_re_1'")
     res = cursor.fetchall()
     assert 2 == len(res)
-    assert "order2" == res[0][0]
+    assert "order2" in [r[0] for r in res]
+    assert "order1" in [r[0] for r in res]
     assert "batch_re_1" == res[0][1]
-    assert 3 == res[0][2]
-    assert "order1" == res[1][0]
     assert "batch_re_1" == res[1][1]
-    assert 2 == res[1][2]
+    assert 3 in [r[2] for r in res]
+    assert 2 in [r[2] for r in res]
 
     sql_con.rollback()
     sql_con.close()
@@ -92,12 +97,12 @@ def test_add_product(sqlite_repo):
     cursor.execute("SELECT * FROM allocations WHERE reference='batch_re_1'")
     res = cursor.fetchall()
     assert 2 == len(res)
-    assert "order2" == res[0][0]
+    assert "order2" in [r[0] for r in res]
+    assert "order1" in [r[0] for r in res]
     assert "batch_re_1" == res[0][1]
-    assert 3 == res[0][2]
-    assert "order1" == res[1][0]
     assert "batch_re_1" == res[1][1]
-    assert 2 == res[1][2]
+    assert 3 in [r[2] for r in res]
+    assert 2 in [r[2] for r in res]
 
     sql_con.rollback()
     sql_con.close()
