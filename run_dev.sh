@@ -1,1 +1,1 @@
-FLASK_ENV=development FLASK_APP="allocation:create_app('InMemoryRepository')" flask run --reload
+SQLITE_DB_FILENAME=local.db FLASK_ENV=development FLASK_APP="allocation:create_app('SQLiteRepository')" flask run --reload

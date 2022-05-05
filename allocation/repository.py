@@ -1,3 +1,4 @@
+import os
 import sqlite3
 from typing import Protocol
 from allocation.domain_model import Batch, OrderLine, Product
@@ -27,30 +28,32 @@ class SQLiteRepository:
         self._initialize()
 
     def _initialize(self):
-        self._conn = sqlite3.connect(self._db_file)
-        self._cursor = self._conn.cursor()
+        conn = sqlite3.connect(self._db_file)
+        cursor = conn.cursor()
         try:
-            self._cursor.execute("SELECT sku FROM batches")
+            cursor.execute("SELECT sku FROM batches")
         except sqlite3.OperationalError:
-            self._cursor.execute(
+            cursor.execute(
                 """CREATE TABLE batches
             (reference TEXT PRIMARY KEY, sku TEXT NOT NULL, purchased_quantity INTEGER DEFAULT 0, eta TEXT)"""
             )
-            self._cursor.execute(
+            cursor.execute(
                 """CREATE TABLE allocations
             (orderid TEXT PRIMARY KEY, reference TEXT NOT NULL,
             quantity INTEGER DEFAULT 0, FOREIGN KEY(reference) REFERENCES batches(reference))"""
             )
-
-            self._commit()
+            conn.commit()
+        conn.close()
 
     def save(self, product: Product):
+        conn = sqlite3.connect(self._db_file)
+        cursor = conn.cursor()
         for batch in product.batches:
-            self._cursor.execute(
+            cursor.execute(
                 "SELECT reference FROM batches WHERE reference=?", (batch.reference,)
             )
-            if not self._cursor.fetchone():
-                self._cursor.execute(
+            if not cursor.fetchone():
+                cursor.execute(
                     f"""INSERT INTO batches
                     VALUES
                     ('{batch.reference}', '{batch.sku}', '{batch.purchased_quantity}',
@@ -58,27 +61,32 @@ class SQLiteRepository:
                 )
             for allocated in batch._allocated:
                 try:
-                    self._cursor.execute(
+                    cursor.execute(
                         f"""INSERT INTO allocations
                         VALUES ('{allocated.orderid}', '{batch.reference}', '{allocated.quantity}')"""
                     )
                 except sqlite3.IntegrityError:
-                    self._cursor.execute(
+                    cursor.execute(
                         f"""UPDATE allocations SET reference='{batch.reference}', quantity='{allocated.quantity}'
                          WHERE orderid='{allocated.orderid}'"""
                     )
-        self._commit()
+        conn.commit()
+        conn.close()
 
     def add(self, product: Product):
         self.save(product)
 
     def get(self, sku: str) -> Product:
-        self._cursor.execute(
+        conn = sqlite3.connect(self._db_file)
+        cursor = conn.cursor()
+        cursor.execute(
             f"""SELECT * FROM batches LEFT JOIN allocations ON batches.reference = allocations.reference
             WHERE batches.sku='{sku}'"""
         )
 
-        batches = SQLiteRepository._to_batches(self._cursor.fetchall())
+        batches = SQLiteRepository._to_batches(cursor.fetchall())
+        conn.close()
+
         if not batches:
             raise ProductNotFoundException()
         return Product(sku=sku, batches=list(batches))
@@ -103,14 +111,13 @@ class SQLiteRepository:
                 )
         return batches
 
-    def _commit(self):
-        self._conn.commit()
-
     def list(self) -> list[Product]:
-        self._cursor.execute(
+        conn = sqlite3.connect(self._db_file)
+        cursor = conn.cursor()
+        cursor.execute(
             """SELECT * FROM batches LEFT JOIN allocations ON batches.reference = allocations.reference"""
         )
-        batches = SQLiteRepository._to_batches(self._cursor.fetchall())
+        batches = SQLiteRepository._to_batches(cursor.fetchall())
         products = list()
 
         for batch in batches:
@@ -120,6 +127,7 @@ class SQLiteRepository:
                 product = Product(sku=batch.sku, batches=[])
                 products.append(product)
             product.batches.append(batch)
+        conn.close()
         return products
 
 
@@ -147,3 +155,5 @@ class InMemoryRepository:
 def initialize_repository(repo_class):
     if repo_class == "InMemoryRepository":
         return InMemoryRepository(products=[])
+    elif repo_class == "SQLiteRepository":
+        return SQLiteRepository(os.environ.get("SQLITE_DB_FILENAME"))

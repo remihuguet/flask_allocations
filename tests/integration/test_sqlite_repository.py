@@ -6,17 +6,21 @@ from allocation.repository import ProductNotFoundException, SQLiteRepository
 
 @pytest.fixture
 def sqlite_repo():
-    repo = SQLiteRepository("tests.db")
-    repo._cursor.execute("DELETE FROM allocations")
-    repo._cursor.execute("DELETE FROM batches")
-    repo._commit()
+    conn = sqlite3.connect("tests.db")
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM allocations")
+    cursor.execute("DELETE FROM batches")
+    conn.commit()
+    conn.close()
     try:
-        yield repo
+        yield SQLiteRepository("tests.db")
     finally:
-        repo._cursor.execute("DELETE FROM allocations")
-        repo._cursor.execute("DELETE FROM batches")
-        repo._commit()
-        repo._conn.close()
+        conn = sqlite3.connect("tests.db")
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM allocations")
+        cursor.execute("DELETE FROM batches")
+        conn.commit()
+        conn.close()
 
 
 def test_save_product(sqlite_repo):
