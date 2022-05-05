@@ -1,29 +1,24 @@
 import sqlite3
 import pytest
 from allocation import domain_model
-from allocation.repository import ProductNotFoundException, SQLiteRepository
+from allocation.repository import ProductNotFoundException
+from allocation.unit_of_work import SQLiteUnitOfWork, sqlite_connection
 
 
 @pytest.fixture
-def sqlite_repo():
-    conn = sqlite3.connect("tests.db")
+def sqlite_uow():
+    uow = SQLiteUnitOfWork(connection_factory=sqlite_connection("tests.db"))
+    with uow:
+        yield uow
+    conn = sqlite_connection("tests.db")()
     cursor = conn.cursor()
-    cursor.execute("DELETE FROM allocations")
-    cursor.execute("DELETE FROM batches")
+    cursor.execute("DELETE FROM ALLOCATIONS")
+    cursor.execute("DELETE FROM BATCHES")
     conn.commit()
     conn.close()
-    try:
-        yield SQLiteRepository("tests.db")
-    finally:
-        conn = sqlite3.connect("tests.db")
-        cursor = conn.cursor()
-        cursor.execute("DELETE FROM allocations")
-        cursor.execute("DELETE FROM batches")
-        conn.commit()
-        conn.close()
 
 
-def test_save_product(sqlite_repo):
+def test_save_product(sqlite_uow):
     product = domain_model.Product(
         sku="TABLE",
         batches=[domain_model.Batch(reference="batch_re_1", quantity=10, sku="TABLE")],
@@ -31,7 +26,8 @@ def test_save_product(sqlite_repo):
     product.allocate(domain_model.OrderLine("order1", "TABLE", 2))
     product.allocate(domain_model.OrderLine("order2", "TABLE", 3))
 
-    sqlite_repo.save(product)
+    sqlite_uow.products.save(product)
+    sqlite_uow.commit()
 
     sql_con = sqlite3.connect("tests.db")
     cursor = sql_con.cursor()
@@ -52,11 +48,10 @@ def test_save_product(sqlite_repo):
     assert 3 in [r[2] for r in res]
     assert 2 in [r[2] for r in res]
 
-    sql_con.rollback()
     sql_con.close()
 
 
-def test_get_product(sqlite_repo):
+def test_get_product(sqlite_uow):
     product = domain_model.Product(
         sku="TABLE",
         batches=[domain_model.Batch(reference="batch_re_1", quantity=10, sku="TABLE")],
@@ -64,8 +59,8 @@ def test_get_product(sqlite_repo):
     product.allocate(domain_model.OrderLine("order1", "TABLE", 2))
     product.allocate(domain_model.OrderLine("order2", "TABLE", 3))
 
-    sqlite_repo.save(product)
-    product_saved = sqlite_repo.get(sku="TABLE")
+    sqlite_uow.products.save(product)
+    product_saved = sqlite_uow.products.get(sku="TABLE")
 
     assert len(product_saved.batches) == len(product.batches)
     for b in product_saved.batches:
@@ -73,13 +68,13 @@ def test_get_product(sqlite_repo):
         assert b._allocated == batch._allocated
 
 
-def test_get_product_raise_exception_if_product_not_found(sqlite_repo):
+def test_get_product_raise_exception_if_product_not_found(sqlite_uow):
 
     with pytest.raises(ProductNotFoundException):
-        sqlite_repo.get(sku="NOTFOUND")
+        sqlite_uow.products.get(sku="NOTFOUND")
 
 
-def test_add_product(sqlite_repo):
+def test_add_product(sqlite_uow):
     product = domain_model.Product(
         sku="TABLE",
         batches=[domain_model.Batch(reference="batch_re_1", quantity=10, sku="TABLE")],
@@ -87,7 +82,8 @@ def test_add_product(sqlite_repo):
     product.allocate(domain_model.OrderLine("order1", "TABLE", 2))
     product.allocate(domain_model.OrderLine("order2", "TABLE", 3))
 
-    sqlite_repo.add(product)
+    sqlite_uow.products.add(product)
+    sqlite_uow.commit()
 
     sql_con = sqlite3.connect("tests.db")
     cursor = sql_con.cursor()
@@ -112,7 +108,7 @@ def test_add_product(sqlite_repo):
     sql_con.close()
 
 
-def test_list(sqlite_repo):
+def test_list(sqlite_uow):
     product = domain_model.Product(
         sku="TABLE",
         batches=[domain_model.Batch(reference="batch_re_1", quantity=10, sku="TABLE")],
@@ -130,10 +126,10 @@ def test_list(sqlite_repo):
     product_2.allocate(domain_model.OrderLine("order232", "CHAIR", 4))
     product_2.allocate(domain_model.OrderLine("order233", "CHAIR", 8))
 
-    sqlite_repo.add(product)
-    sqlite_repo.add(product_2)
+    sqlite_uow.products.add(product)
+    sqlite_uow.products.add(product_2)
 
-    products = sqlite_repo.list()
+    products = sqlite_uow.products.list()
 
     assert len(products) == 2
     skus = [p.sku for p in products]
@@ -151,5 +147,5 @@ def test_list(sqlite_repo):
     assert chair.available_quantity == 38
 
 
-def test_list_returns_empty_list_if_no_products(sqlite_repo):
-    assert [] == sqlite_repo.list()
+def test_list_returns_empty_list_if_no_products(sqlite_uow):
+    assert [] == sqlite_uow.products.list()

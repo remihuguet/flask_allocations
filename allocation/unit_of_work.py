@@ -1,4 +1,5 @@
 import abc
+import os
 import sqlite3
 from allocation import repository
 
@@ -53,9 +54,17 @@ class SQLiteUnitOfWork(AbstractUnitOfWork):
         self.connection.rollback()
 
 
+def sqlite_connection(db_filename: str):
+    def _():
+        return sqlite3.connect(db_filename)
+
+    return _
+
+
 def initialize_uow(repo_class):
     if repo_class == "InMemoryRepository":
         return InMemoryUnitOfWork()
     elif repo_class == "SQLiteRepository":
-        return SQLiteUnitOfWork(connection_factory=None)
-        # return SQLiteRepository(os.environ.get("SQLITE_DB_FILENAME"))
+        return SQLiteUnitOfWork(
+            connection_factory=sqlite_connection(os.environ.get("SQLITE_DB_FILENAME"))
+        )

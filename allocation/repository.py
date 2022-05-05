@@ -22,13 +22,12 @@ class Repository(Protocol):
 
 
 class SQLiteRepository:
-    def __init__(self, db_file: str):
-        self._db_file = db_file
+    def __init__(self, connection: sqlite3.Connection):
+        self._conn = connection
         self._initialize()
 
     def _initialize(self):
-        conn = sqlite3.connect(self._db_file)
-        cursor = conn.cursor()
+        cursor = self._conn.cursor()
         try:
             cursor.execute("SELECT sku FROM batches")
         except sqlite3.OperationalError:
@@ -41,12 +40,10 @@ class SQLiteRepository:
             (orderid TEXT PRIMARY KEY, reference TEXT NOT NULL,
             quantity INTEGER DEFAULT 0, FOREIGN KEY(reference) REFERENCES batches(reference))"""
             )
-            conn.commit()
-        conn.close()
+            self._conn.commit()
 
     def save(self, product: Product):
-        conn = sqlite3.connect(self._db_file)
-        cursor = conn.cursor()
+        cursor = self._conn.cursor()
         for batch in product.batches:
             cursor.execute(
                 "SELECT reference FROM batches WHERE reference=?", (batch.reference,)
@@ -69,23 +66,18 @@ class SQLiteRepository:
                         f"""UPDATE allocations SET reference='{batch.reference}', quantity='{allocated.quantity}'
                          WHERE orderid='{allocated.orderid}'"""
                     )
-        conn.commit()
-        conn.close()
 
     def add(self, product: Product):
         self.save(product)
 
     def get(self, sku: str) -> Product:
-        conn = sqlite3.connect(self._db_file)
-        cursor = conn.cursor()
+        cursor = self._conn.cursor()
         cursor.execute(
             f"""SELECT * FROM batches LEFT JOIN allocations ON batches.reference = allocations.reference
             WHERE batches.sku='{sku}'"""
         )
 
         batches = SQLiteRepository._to_batches(cursor.fetchall())
-        conn.close()
-
         if not batches:
             raise ProductNotFoundException()
         return Product(sku=sku, batches=list(batches))
@@ -111,8 +103,7 @@ class SQLiteRepository:
         return batches
 
     def list(self) -> list[Product]:
-        conn = sqlite3.connect(self._db_file)
-        cursor = conn.cursor()
+        cursor = self._conn.cursor()
         cursor.execute(
             """SELECT * FROM batches LEFT JOIN allocations ON batches.reference = allocations.reference"""
         )
@@ -126,7 +117,6 @@ class SQLiteRepository:
                 product = Product(sku=batch.sku, batches=[])
                 products.append(product)
             product.batches.append(batch)
-        conn.close()
         return products
 
 
