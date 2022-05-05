@@ -1,4 +1,3 @@
-import os
 import sqlite3
 from typing import Protocol
 from allocation.domain_model import Batch, OrderLine, Product
@@ -150,10 +149,3 @@ class InMemoryRepository:
     def save(self, product: Product):
         self._products.discard(product)
         self._products.add(product)
-
-
-def initialize_repository(repo_class):
-    if repo_class == "InMemoryRepository":
-        return InMemoryRepository(products=[])
-    elif repo_class == "SQLiteRepository":
-        return SQLiteRepository(os.environ.get("SQLITE_DB_FILENAME"))

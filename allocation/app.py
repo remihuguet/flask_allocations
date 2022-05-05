@@ -1,5 +1,5 @@
 from flask import Flask, render_template, request
-from allocation import repository
+from allocation.unit_of_work import initialize_uow
 from allocation.views.api import api
 from allocation.views.admin import admin
 
@@ -8,7 +8,7 @@ def create_app(repository_class):
 
     app = Flask(__name__)
 
-    app.repository = repository.initialize_repository(repository_class)
+    app.uow = initialize_uow(repository_class)
 
     app.register_blueprint(api)
     app.register_blueprint(admin, url_prefix="/admin")

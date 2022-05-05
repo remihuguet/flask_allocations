@@ -1,11 +1,11 @@
 import pytest
 from allocation import create_app
-from allocation.repository import InMemoryRepository
+from allocation.unit_of_work import InMemoryUnitOfWork
 
 
 @pytest.fixture
-def repository():
-    return InMemoryRepository(products=[])
+def uow():
+    return InMemoryUnitOfWork()
 
 
 @pytest.fixture
