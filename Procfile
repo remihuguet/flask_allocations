@@ -1,1 +1,1 @@
-web: gunicorn "allocation:create_app('InMemoryRepository')" 
+web: gunicorn "allocation:create_app('SQLiteRepository')" 
